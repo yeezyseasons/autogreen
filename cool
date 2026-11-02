@@ -1,0 +1,100 @@
+-- Clean AutoGreen for Practical Basketball
+-- Deobfuscated & rewritten so you own the code
+
+local OFFSET = 296
+local MEMORY_ADD = 4
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local playerName = LocalPlayer.Name
+
+print("AutoGreen loaded")
+
+-- Detect if current map is "park"
+local isPark = false
+if Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Functionals") then
+    print("park")
+    isPark = true
+else
+    print("not park")
+    isPark = false
+end
+
+local releasing = false
+
+-- Returns true when the meter is in the green window
+local function isInGreenZone()
+    local character = Workspace.Characters and Workspace.Characters:FindFirstChild(playerName)
+    if not character then return false end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    local verticalMeter = hrp:FindFirstChild("VerticalMeter")
+    if not verticalMeter then return false end
+
+    local meterFill = verticalMeter:FindFirstChild("Meter_Fill")
+    if not meterFill then return false end
+
+    local gradient = meterFill:FindFirstChildOfClass("UIGradient")
+    if not gradient or not gradient.Address or gradient.Address == 0 then
+        return false
+    end
+
+    local address = gradient.Address + OFFSET + MEMORY_ADD
+    local value = memory_read("float", address)
+
+    local ping = GetPingValue() or 0
+    local low, high
+
+    if isPark then
+        low  = -1.34  + (ping - 10) / 850
+        high = -1.295 + (ping - 10) / 850
+    else
+        low  = -1.37  + (ping - 10) / 850
+        high = -1.325 + (ping - 10) / 850
+    end
+
+    return value >= low and value <= high
+end
+
+-- Hold the key until the meter is green, then release
+local function waitForGreenAndRelease(isJumpshot)
+    releasing = true
+
+    repeat
+        task.wait()
+    until isInGreenZone() or not _G.AutoGreen
+
+    if isJumpshot then
+        keyrelease(0x45) -- E
+    else
+        keyrelease(0x20) -- Space
+    end
+
+    task.wait(1)
+    releasing = false
+end
+
+-- Enable the script
+_G.AutoGreen = true
+
+-- Main loop
+while _G.AutoGreen do
+    local character = Workspace.Characters and Workspace.Characters:FindFirstChild(playerName)
+
+    if character
+        and character:FindFirstChild("Attributes")
+        and character.Attributes:FindFirstChild("Basketball")
+    then
+        if iskeypressed(0x45) and not releasing then       -- E (jumpshot)
+            waitForGreenAndRelease(true)
+        elseif iskeypressed(0x20) and not releasing then    -- Space (dunk)
+            waitForGreenAndRelease(false)
+        end
+    end
+
+    task.wait(0.1)
+end
