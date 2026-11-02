@@ -1,6 +1,3 @@
--- Clean AutoGreen for Practical Basketball
--- Deobfuscated & rewritten so you own the code
-
 local OFFSET = 296
 local MEMORY_ADD = 4
 
